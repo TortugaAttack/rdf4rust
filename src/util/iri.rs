@@ -30,7 +30,7 @@ impl Query {
         ret
     }
 
-    pub fn create_query(query: &str) -> Result<Query, URIInvalidError>{
+    pub fn create_query(query: String) -> Result<Query, IRIInvalidError>{
         let v: Vec<&str> = query.split("&").collect();
         let mut key_value: HashMap<String, String> = HashMap::new();
         for fragment in v.iter() {
@@ -40,7 +40,7 @@ impl Query {
                     let value = String::from(&fragment[value+1..]);
                     key_value.insert(key, value);
                 },
-                None => return Err(URIInvalidError::new(String::from("Invalid Query part, should be set of <key=value> pairs seperated by <&>")))
+                None => return Err(IRIInvalidError::new(String::from("Invalid Query part, should be set of <key=value> pairs seperated by <&>")))
             };
         }
         Result::Ok(Query{
@@ -71,7 +71,7 @@ impl User {
     }
 
 
-    pub fn create_user(str: &str) -> User{
+    pub fn create_user(str: String) -> User{
         let user_end = match str.find(':'){
             Some(num) => num,
             None => str.len()
@@ -126,7 +126,7 @@ impl Authority {
         &self.user
     }
 
-    fn create_authority(string: &str)-> Result<Authority, URIInvalidError>{
+    fn create_authority(string: String)-> Result<Authority, IRIInvalidError>{
         //regex check ([^\s:@]+(:[^\s:@]*)?@)?[^:]+(:[0-9]+)?
         //xyz:yul@ <-
         //uli.bla.d:0000
@@ -137,7 +137,7 @@ impl Authority {
         let mut user = None;
         let mut port = None;
         if index>0 {
-            user = Some(User::create_user(&String::from(string)[..index]));
+            user = Some(User::create_user(String::from(&string[..index])));
             index = index+1;
         }
 
@@ -149,7 +149,7 @@ impl Authority {
         if host_end_index+1 <string.len(){
             let port_no:u32 = match string[host_end_index+1..].parse(){
                 Ok(num) => num,
-                Err(_) => return Err(URIInvalidError::new(String::from("URI is not valid, expected number as port.")))
+                Err(_) => return Err(IRIInvalidError::new(String::from("IRI is not valid, expected number as port.")))
             };
             port =  Some(port_no);
         }
@@ -176,7 +176,7 @@ impl Authority {
     }
 }
 
-pub struct URI {
+pub struct IRI {
     scheme: String,
     authority: Option<Authority>,
     path:  String,
@@ -184,13 +184,17 @@ pub struct URI {
     fragment:  Option<String>
 }
 
-impl fmt::Display for URI {
+impl fmt::Display for IRI {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,"{}",self.as_string())
     }
 }
 
-impl URI {
+impl IRI {
+
+    pub fn is_uri(&self) -> bool{
+        self.as_string().is_ascii()
+    }
 
     pub fn get_authority(&self) -> &Option<Authority> {
         &self.authority
@@ -227,31 +231,31 @@ impl URI {
         ret
     }
 
-    pub fn create_uri(uri: &str) -> Result<URI, URIInvalidError> {
-        if uri.split_whitespace().count() > 1{
-            return Err(URIInvalidError::new(String::from("URI is not valid. Whitespaces are not allowed.")))
+    pub fn create_iri(iri: &String) -> Result<IRI, IRIInvalidError> {
+        if iri.split_whitespace().count() > 1{
+            return Err(IRIInvalidError::new(String::from("iri is not valid. Whitespaces are not allowed.")))
         }
         //0. regex check schema:(//(user(:pwd)?@)?[^/]+)?[^\?\#]*(\?[^#\?]+)?(\#[^\s\#]+)?
         //1. split to schema:XYZ
-        let mut index = match uri.find(':'){
+        let mut index = match iri.find(':'){
             Some(num) => num,
-            None => return Err(URIInvalidError::new(String::from("URI is not valid, expected <:> after schema.")))
+            None => return Err(IRIInvalidError::new(String::from("iri is not valid, expected <:> after schema.")))
         };
-        let scheme = String::from(&uri[..index]);
+        let scheme = String::from(&iri[..index]);
         //2. if YZ starts with // -> authority
         let mut authority = None;
         let mut path = String::from("/");
         //+1 for :
-        if uri[index+1..].starts_with("//"){
+        if iri[index+1..].starts_with("//"){
             // +3 for ://
-            let auth_end_index= match uri[index+3..].find(|c: char| (c=='/' || c=='?' || c=='#')){
+            let auth_end_index= match iri[index+3..].find(|c: char| (c=='/' || c=='?' || c=='#')){
                 Some(val) => val+index+3,
                 None => {
-                    //uri is finished
-                    uri.len()
+                    //iri is finished
+                    iri.len()
                 }
             };
-            authority = match Authority::create_authority(&uri[index+3..auth_end_index]){
+            authority = match Authority::create_authority(String::from(&iri[index+3..auth_end_index])){
                 Ok(auth)   => Some(auth),
                 Err(e) => return Err(e)
             };
@@ -261,25 +265,25 @@ impl URI {
             index +=1;
         }
         //3. path
-        if index != uri.len() && uri.as_bytes()[index] != b'?' && uri.as_bytes()[index] != b'#' {
-            if authority.is_some() && uri.as_bytes()[index] != b'/'{
-                return Result::Err(URIInvalidError::new(String::from("URI is not valid, authority is set, but path does not begin with </>.")))
+        if index != iri.len() && !iri[index..].starts_with('?') && !iri[index..].starts_with('#') {
+            if authority.is_some() && !iri[index..].starts_with('/'){
+                return Result::Err(IRIInvalidError::new(String::from("iri is not valid, authority is set, but path does not begin with </>.")))
             }
-            let path_end_index = match uri[index + 1..].find(|c: char| (c == '?' || c == '#')) {
+            let path_end_index = match iri[index + 1..].find(|c: char| (c == '?' || c == '#')) {
                 Some(val) => val+index+1,
-                None => uri.len()
+                None => iri.len()
             };
-            path = String::from(&uri[index..path_end_index]);
+            path = String::from(&iri[index..path_end_index]);
             index = path_end_index;
         }
         let mut query = None;
         //4. has ? -> query
-        if index != uri.len() && uri.as_bytes()[index] == b'?'{
-            let query_end_index = match uri[index + 1..].find(|c: char|  c == '#') {
+        if index != iri.len() && iri[index..].starts_with('?'){
+            let query_end_index = match iri[index + 1..].find(|c: char|  c == '#') {
                 Some(val) => val+index+1,
-                None => uri.len()
+                None => iri.len()
             };
-            query = match Query::create_query(&uri[index+1..query_end_index]){
+            query = match Query::create_query(String::from(&iri[index+1..query_end_index])){
                 Ok(val) => Some(val),
                 Err(e) => return Err(e)
             };
@@ -287,22 +291,21 @@ impl URI {
         }
         let mut fragment = None;
         //5. has # fragment
-        if index != uri.len() && uri.as_bytes()[index] == b'#'{
-            let tmp = String::from(&uri[index+1..uri.len()]);
+        if index != iri.len() && iri[index..].starts_with('#'){
+            let tmp = String::from(&iri[index+1..iri.len()]);
             if tmp.chars().all(|c| ( c != '#' && c!= '%' && c!= '^' && c!= '\\' && c!= '{' && c!= '}' &&
                 c!= '[' && c!= ']' && c!= '|') ) {
-                println!("{}", tmp);
                 fragment = Some(tmp);
             }
             else{
-                let mut error = String::from("URI is not valid, URI has invalid part <");
+                let mut error = String::from("iri is not valid, iri has invalid part <");
                 error = error.add(&tmp).add(">");
-                return Result::Err(URIInvalidError::new(error))
+                return Result::Err(IRIInvalidError::new(error))
             }
 
         }
 
-        Ok(URI {
+        Ok(IRI {
             scheme,
             authority,
             path,
@@ -312,22 +315,22 @@ impl URI {
 
     }
 
-    pub fn is_valid_uri(uri: &str) ->bool{
-        URI::create_uri(uri).is_ok()
+    pub fn is_valid_iri(iri: &String) ->bool{
+        IRI::create_iri(iri).is_ok()
     }
 }
 
-pub struct URIInvalidError {
+pub struct IRIInvalidError {
     msg: String
 }
 
-impl URIInvalidError{
-    pub fn new(msg: String) -> URIInvalidError {
-        URIInvalidError{msg}
+impl IRIInvalidError {
+    pub fn new(msg: String) -> IRIInvalidError {
+        IRIInvalidError {msg}
     }
 }
 
-impl fmt::Display for URIInvalidError {
+impl fmt::Display for IRIInvalidError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,"{}",self.msg)
     }
