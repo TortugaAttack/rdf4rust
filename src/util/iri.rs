@@ -2,7 +2,11 @@ use std::fmt;
 use std::ops::Add;
 use std::fmt::Formatter;
 use std::collections::HashMap;
+use std::error::Error;
+use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
+#[derive(Eq)]
 pub struct Query {
     key_value: HashMap<String, String>,
 }
@@ -10,6 +14,51 @@ pub struct Query {
 impl fmt::Display for Query{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_string())
+    }
+}
+
+impl Hash for Query{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_string().hash(state)
+    }
+
+    fn hash_slice<H: Hasher>(data: &[Self], state: &mut H) where
+        Self: Sized, {
+        todo!()
+    }
+}
+
+impl PartialOrd for Query{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.as_string().partial_cmp(&other.as_string())
+    }
+
+    fn lt(&self, other: &Self) -> bool {
+        self.as_string().lt(&other.as_string())
+    }
+
+    fn le(&self, other: &Self) -> bool {
+        self.as_string().le(&other.as_string())
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        self.as_string().gt(&other.as_string())
+    }
+
+    fn ge(&self, other: &Self) -> bool {
+        self.as_string().ge(&other.as_string())
+    }
+}
+
+impl PartialEq for Query{
+    //TODO!
+    fn eq(&self, other: &Self) -> bool {
+        self.as_string().eq(&other.as_string())
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.as_string().ne(&other.as_string())
+
     }
 }
 
@@ -48,7 +97,7 @@ impl Query {
         })
     }
 }
-
+#[derive(Ord, PartialOrd, PartialEq, Eq, Hash)]
 pub struct User {
     user: String,
     password: Option<String>,
@@ -99,7 +148,7 @@ impl User {
         return ret;
     }
 }
-
+#[derive(Ord, PartialOrd, PartialEq, Eq, Hash)]
 pub struct Authority {
     user: Option<User>,
     host: String,
@@ -176,6 +225,7 @@ impl Authority {
     }
 }
 
+#[derive(PartialOrd, PartialEq, Eq, Hash)]
 pub struct IRI {
     scheme: String,
     authority: Option<Authority>,
@@ -320,8 +370,9 @@ impl IRI {
     }
 }
 
+#[derive(Debug)]
 pub struct IRIInvalidError {
-    msg: String
+    pub msg: String
 }
 
 impl IRIInvalidError {
@@ -329,6 +380,11 @@ impl IRIInvalidError {
         IRIInvalidError {msg}
     }
 }
+
+
+impl Error for IRIInvalidError{
+}
+
 
 impl fmt::Display for IRIInvalidError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -72,7 +72,7 @@ pub fn XSD_NEGATIVE_INTEGER() -> XSDDataType{
 }
 /// XSD Type Decimal = http://www.w3.org/2001/XMLSchema#decimal
 ///
-/// Will be internally used as i64
+/// Will be internally used as f64
 pub fn XSD_DECIMAL() -> XSDDataType{ 
 	XSDDataType::create_from_string(XSD_BASE() +"decimal").expect("")
 }
@@ -163,6 +163,7 @@ pub fn XSD_G_MONTH() -> XSDDataType{
 /// The XSD Data type - usually http://www.w3.org/2001/XMLSchema# and the datatype name
 ///
 /// For distinction between the different types have a look at https://www.eclipse.org/modeling/emf/docs/xsd/dW/os-schema2/os-schema2-3-2.html
+#[derive(PartialOrd, PartialEq, Eq, Hash)]
 pub struct XSDDataType{
     dtype: IRI
 }

@@ -1,67 +1,87 @@
 use std::collections::{HashMap, HashSet};
-use crate::rdf::node_factory::{RDFNode, URIResource, Literal, BlankNode};
+use crate::rdf::node_factory::{RDFNode, IRIResource, Literal, BlankNode};
 use std::convert::TryInto;
+use std::error::Error;
+use crate::io::reader::{parse_resolved_object, ParserError};
+use crate::util::iri::IRI;
+use crate::rdf::graph::ResourceNode::{BNode, IRINode};
+use std::hash::{Hash, Hasher};
+use std::fmt::{Display, Formatter};
+use std::fmt;
 
 ///
 /// Graph trait to define all functions a graph implementation should be able to execute
 ///
 pub trait Graph{
-    fn count(&self)-> u64;
+    fn count(&self)-> usize;
     fn list_all_statements(&self) -> &Vec<Statement>;
-    fn add_statement(&self,stmt: Statement);
+    fn add_statement(&mut self,stmt: Statement);
     fn add_all_statements(&self,stmts: &Vec<Statement>);
     fn remove_statement(&self,stmt: Statement);
     fn remove_all_statements(&self,stmts: &Vec<Statement>);
     fn list_statements_for_subject(&self,subject: ResourceNode) -> Vec<&Statement>;
     fn list_statements_for_object(&self,object: ResourceNode) -> Vec<&Statement>;
     fn list_statements_for_predicate(&self,predicate: ResourceNode) -> Vec<&Statement>;
-    fn list_statements(&self,subject: Option<ResourceNode>, predicate: Option<URIResource>, object: Option<Node>) -> Vec<&Statement>;
+    fn list_statements(&self, subject: Option<ResourceNode>, predicate: Option<IRIResource>, object: Option<Node>) -> Vec<&Statement>;
     fn get_name(&self) -> Option<String>;
-    fn load(&self) -> dyn Graph;
+    fn load(&self);
     fn store(&self);
+    fn print(&self);
 }
 
+#[derive(PartialOrd, PartialEq, Eq, Hash)]
 pub enum ResourceNode{
-    URINode{
-        uri: URIResource
+    IRINode {
+        iri: IRIResource
     },
     BNode{
         bnode:BlankNode
     }
 }
 
+
+
 impl ResourceNode {
+
+    pub fn as_string(&self) -> String {
+        match &self{
+            ResourceNode::IRINode { iri } => {iri.as_string(false)}
+            ResourceNode::BNode { bnode } => {bnode.as_string(true)}
+        }
+    }
+
     pub fn is_bnode(&self)->bool{
         match &self{
-            ResourceNode::URINode { .. } => {false}
+            ResourceNode::IRINode { .. } => {false}
             ResourceNode::BNode { .. } => {true}
         }
     }
     pub fn is_uri(&self)->bool{
         match &self{
-            ResourceNode::URINode { .. } => {true}
+            ResourceNode::IRINode { .. } => {true}
             ResourceNode::BNode { .. } => {false}
         }
     }
 
-    pub fn as_uri_resource(&self) -> Result<&URIResource,&str> {
+    pub fn as_uri_resource(&self) -> Result<&IRIResource,&str> {
         match self {
-            ResourceNode::URINode {  uri} => { Ok(uri)}
+            ResourceNode::IRINode { iri: uri } => { Ok(uri)}
             ResourceNode::BNode { .. } => { Err("Blank Node cannot be converted to URI resource.")}
         }
     }
 
     pub fn as_blank_node(&self) -> Result<&BlankNode,&str> {
         match self {
-            ResourceNode::URINode { .. } => { Err("URI Node cannot be converted to Blank Node.")}
+            ResourceNode::IRINode { .. } => { Err("URI Node cannot be converted to Blank Node.")}
             ResourceNode::BNode { bnode } => { Ok(bnode)}
         }
     }
 }
 
+#[derive(PartialOrd, PartialEq, Eq, Hash)]
 pub enum Node{
-    URINode{
-        uri: URIResource
+    IRINode {
+        iri: IRIResource
     },
     LiteralNode {
         literal: Literal
@@ -72,31 +92,40 @@ pub enum Node{
 }
 
 impl Node{
+
+    pub fn as_string(&self) -> String{
+        match &self{
+            Node::IRINode { iri } => {iri.as_string(false)}
+            Node::LiteralNode { literal } => {literal.as_string(true)}
+            Node::BNode { bnode } => {bnode.as_string(true)}
+        }
+    }
+
     pub fn is_literal(&self)->bool{
         match &self{
-            Node::URINode { .. } => {false}
+            Node::IRINode { .. } => {false}
             Node::LiteralNode { .. } => {true}
             Node::BNode { .. } => {false}
         }
     }
     pub fn is_bnode(&self)->bool{
         match &self{
-            Node::URINode { .. } => {false}
+            Node::IRINode { .. } => {false}
             Node::LiteralNode { .. } => {false}
             Node::BNode { .. } => {true}
         }
     }
     pub fn is_uri(&self)->bool{
         match &self{
-            Node::URINode { .. } => {true}
+            Node::IRINode { .. } => {true}
             Node::LiteralNode { .. } => {false}
             Node::BNode { .. } => {false}
         }
     }
 
-    pub fn as_uri_resource(&self) -> Result<&URIResource,&str> {
+    pub fn as_uri_resource(&self) -> Result<&IRIResource,&str> {
         match self {
-            Node::URINode { uri } => { Ok(uri)}
+            Node::IRINode { iri: uri } => { Ok(uri)}
             Node::LiteralNode { .. } => {Err("Cannot convert Literal to URI Resource")}
             Node::BNode { .. } => {Err("Cannot convert Blank node to URI Resource")}
         }
@@ -105,7 +134,7 @@ impl Node{
     pub fn as_blank_node(&self) -> Result<&BlankNode,&str> {
         match self {
             Node::BNode { bnode } => {Ok(bnode)}
-            Node::URINode { .. } => { Err("Cannot convert URI Node to Blank Node")}
+            Node::IRINode { .. } => { Err("Cannot convert URI Node to Blank Node")}
             Node::LiteralNode { .. } => {Err("Cannot convert Literal to Blank Node")}
         }
     }
@@ -113,7 +142,7 @@ impl Node{
     pub fn as_literal(&self) -> Result<&Literal,&str> {
         match self {
             Node::LiteralNode { literal } => {Ok(literal)}
-            Node::URINode { .. } => { Err("Cannot convert URI Node to Literal")}
+            Node::IRINode { .. } => { Err("Cannot convert URI Node to Literal")}
             Node::BNode { .. } => {Err("Cannot convert Blank node to Literal")}
         }
     }
@@ -131,18 +160,97 @@ impl Node{
 /// * `object` - `URIResource` or `BlankNode` or `Literal`
 ///
 /// Hence Variables are not allowed, which makes the distinction to a plain `Triple` where all can be a `Variable` as well.
+#[derive(PartialOrd, PartialEq, Eq, Hash)]
 pub struct Statement{
     subject: ResourceNode,
-    predicate: URIResource,
+    predicate: IRIResource,
     object: Node
 }
 
+impl Display for Statement{
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let subj = match &self.subject{
+            ResourceNode::IRINode { iri } => {iri.as_string(true)}
+            ResourceNode::BNode { bnode } => {bnode.as_string(true)}
+        };
+        let str = match &self.object{
+            Node::IRINode { iri } => {
+                format!("{} <{}> <{}> .", subj, self.predicate.get_iri(), iri.get_iri())}
+            Node::LiteralNode { literal } => {
+                format!("{} <{}> {} .", subj, self.predicate.get_iri(), literal.as_string(true))
+            }
+            Node::BNode { bnode } => {
+                format!("{} <{}> {} .", subj, self.predicate.get_iri(), bnode.as_string(true))
+            }
+        };
+        write!(f,"{}",str)
+    }
+
+}
+
 impl Statement{
+
+    pub fn create(subject: ResourceNode,
+                  predicate: IRIResource,
+                  object: Node) -> Statement{
+        Statement{
+            subject,
+            predicate,
+            object
+        }
+    }
+
+    pub fn from_line(line: &str) -> Result<Statement, ParserError>{
+        let mut last_whitespace = false;
+        let triple_vec: Vec<_> = line.trim().splitn(3, |c: char| {
+            if c.is_whitespace() {
+                if last_whitespace {
+                    return false
+                }
+                last_whitespace = true;
+                true
+            } else {
+                last_whitespace = false;
+                false
+            }
+        }).map(str::trim).collect();
+        if triple_vec.len() !=3 {println!("{}", line);panic!("")}
+        let subj =  triple_vec[0];
+        let pred = triple_vec[1];
+        let predicate = IRIResource::create_resource(
+            IRI::create_iri(
+                &String::from(
+                    &pred[1..pred.len()-1]
+                )
+            ).expect("")
+        );
+        let object = parse_resolved_object(triple_vec[2]).expect("Couldn't parse literal");
+        if subj.starts_with("_:"){
+            Ok(Statement{
+                subject: BNode {
+                    bnode: BlankNode::generate_from_string(&subj[2..])
+                },
+                predicate,
+                object
+            })
+        }
+        else{
+            Ok(Statement{
+                subject: IRINode {
+                    iri: IRIResource::create_resource(IRI::create_iri(&String::from(&subj[1..subj.len()-1])).expect(""))
+                },
+                predicate,
+                object
+            })
+        }
+    }
+
     pub fn get_subject(&self)-> &ResourceNode{
         &self.subject
     }
 
-    pub fn get_predicate(&self)-> &URIResource{
+    pub fn get_predicate(&self)-> &IRIResource {
         &self.predicate
     }
 
@@ -164,7 +272,78 @@ impl Statement{
 /// Thus complexity is always O(N)
 ///
 pub struct SimpleGraph{
-    statements: HashSet<Statement>
+     statements: HashSet<Statement>
+}
+
+impl Graph for SimpleGraph{
+    fn count(&self) -> usize {
+        self.statements.len()
+    }
+
+    fn list_all_statements(&self) -> &Vec<Statement> {
+        todo!()
+    }
+
+    fn add_statement(&mut self, stmt: Statement) {
+       &self.statements.insert(stmt);
+    }
+
+    fn add_all_statements(&self, stmts: &Vec<Statement>) {
+        todo!()
+    }
+
+    fn remove_statement(&self, stmt: Statement) {
+        todo!()
+    }
+
+    fn remove_all_statements(&self, stmts: &Vec<Statement>) {
+        todo!()
+    }
+
+    fn list_statements_for_subject(&self, subject: ResourceNode) -> Vec<&Statement> {
+        todo!()
+    }
+
+    fn list_statements_for_object(&self, object: ResourceNode) -> Vec<&Statement> {
+        todo!()
+    }
+
+    fn list_statements_for_predicate(&self, predicate: ResourceNode) -> Vec<&Statement> {
+        todo!()
+    }
+
+    fn list_statements(&self, subject: Option<ResourceNode>, predicate: Option<IRIResource>, object: Option<Node>) -> Vec<&Statement> {
+        todo!()
+    }
+
+    fn get_name(&self) -> Option<String> {
+        todo!()
+    }
+
+    fn load(&self) {
+        todo!()
+    }
+
+    fn store(&self) {
+        todo!()
+    }
+
+    fn print(&self) {
+        {
+            for stmt in &self.statements{
+                println!("{}", stmt);
+            }
+        }
+    }
+}
+
+impl SimpleGraph{
+    pub fn new()-> SimpleGraph{
+        SimpleGraph{
+            statements: HashSet::new()
+        }
+    }
+
 }
 
 
@@ -177,7 +356,7 @@ pub struct SimpleGraph{
 ///
 /// Evaluates queries of type `<s> ?p ?o` (resp. `?s ?p <o>`) as follows
 ///
-/// 1. Return all Statements from SPO index for `<s>` (-> O(1))
+/// 1. Return all Statements from SPO index for `<s>` (-> O(M))
 ///
 /// Evaluates queries of type `<s> <p> ?o` (resp. `?s <p> <o>`) as follows
 ///
@@ -190,8 +369,104 @@ pub struct SimpleGraph{
 /// Evaluates queries of type `?s <p> ?o` by iterating over all values in the map.
 /// If you need such queries use either a `SimpleGraph` or a `FullIndexedGraph`
 pub struct IndexedGraph{
-    spo: HashMap<ResourceNode, HashSet<Statement>>,
-    ops: HashMap<Node, HashSet<Statement>>,
+    statements: Vec<Statement>,
+    spo: HashMap<String, HashSet<usize>>,
+    ops: HashMap<String, HashSet<usize>>
+}
+
+impl IndexedGraph{
+    pub fn new()-> IndexedGraph{
+        IndexedGraph{
+            statements: Vec::new(),
+            spo: HashMap::new(),
+            ops: HashMap::new()
+        }
+    }
+}
+
+impl Graph for IndexedGraph{
+    fn count(&self) -> usize {
+        let mut count: usize = 0;
+        self.spo.values().for_each(|x| {count+=x.len();});
+        count
+    }
+
+    fn list_all_statements(&self) -> &Vec<Statement> {
+        todo!()
+    }
+
+    fn add_statement(&mut self, stmt: Statement) {
+        let mut index = self.statements.len();
+
+        let subj_str = (&stmt).subject.as_string();
+        if !self.spo.contains_key(&subj_str){
+            self.spo.insert(subj_str, HashSet::new());
+        }
+        let obj_str = (&stmt).object.as_string();
+        if !self.ops.contains_key(&obj_str){
+            self.ops.insert(obj_str, HashSet::new());
+        }
+        let subj_str = (&stmt).subject.as_string();
+        let obj_str = (&stmt).object.as_string();
+        self.spo.get_mut(&subj_str).expect("").insert(index);
+        self.ops.get_mut(&obj_str).expect("").insert(index);
+        self.statements.push(stmt);
+
+    }
+
+    fn add_all_statements(&self, stmts: &Vec<Statement>) {
+        todo!()
+    }
+
+    fn remove_statement(&self, stmt: Statement) {
+        todo!()
+    }
+
+    fn remove_all_statements(&self, stmts: &Vec<Statement>) {
+        todo!()
+    }
+
+    fn list_statements_for_subject(&self, subject: ResourceNode) -> Vec<&Statement> {
+        let mut ret:Vec<&Statement> = Vec::new();
+        for &x in self.spo.get(&subject.as_string()).expect("").iter(){
+            ret.push(&self.statements[x]);
+        }
+        ret
+    }
+
+    fn list_statements_for_object(&self, object: ResourceNode) -> Vec<&Statement> {
+        let mut ret:Vec<&Statement> = Vec::new();
+        for &x in self.ops.get(&object.as_string()).expect("").iter(){
+            ret.push(&self.statements[x]);
+        }
+        ret
+    }
+
+    fn list_statements_for_predicate(&self, predicate: ResourceNode) -> Vec<&Statement> {
+        todo!()
+    }
+
+    fn list_statements(&self, subject: Option<ResourceNode>, predicate: Option<IRIResource>, object: Option<Node>) -> Vec<&Statement> {
+        todo!()
+    }
+
+    fn get_name(&self) -> Option<String> {
+        todo!()
+    }
+
+    fn load(&self) {
+        todo!()
+    }
+
+    fn store(&self) {
+        todo!()
+    }
+
+    fn print(&self) {
+        for stmt in &self.statements {
+            println!("{}", stmt);
+        }
+    }
 }
 
 ///
@@ -203,7 +478,7 @@ pub struct IndexedGraph{
 ///
 /// Evaluates queries of type `<s> ?p ?o` (resp. `?s ?p <o>` and `?s <p> ?o`) as follows
 ///
-/// 1. Return all Statements from SPO index for `<s>` (-> O(1))
+/// 1. Return all Statements from SPO index for `<s>` (-> O(M))
 ///
 /// Evaluates queries of type `<s> <p> ?o` (resp. `?s <p> <o>`) as follows
 ///
@@ -212,7 +487,8 @@ pub struct IndexedGraph{
 ///
 /// Thus complexity is O(M), whereas `M` is the size of Statements concerning `<s>`.
 pub struct FullIndexedGraph{
-    spo: HashMap<ResourceNode, HashSet<Statement>>,
-    ops: HashMap<URIResource, HashSet<Statement>>,
-    pso: HashMap<Node, HashSet<Statement>>
+    statements: Vec<Statement>,
+    spo: HashMap<ResourceNode, HashSet<usize>>,
+    ops: HashMap<IRIResource, HashSet<usize>>,
+    pso: HashMap<Node, HashSet<usize>>
 }
