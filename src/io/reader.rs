@@ -52,13 +52,7 @@ pub struct Reader{
 
 impl Reader {
 
-    fn lang_to_parser(lang: &Lang) -> impl Parser{
-        match lang{
-            Lang::NTRIPLE => {NTripleReader{}}
-            Lang::NT => {NTripleReader{}}
-            _ => NTripleReader{}
-        }
-    }
+
 
     pub fn read_indexed_graph(file: &str, lang: Lang)-> Result<IndexedGraph, ParserError>{
         let mut graph = IndexedGraph::new();
@@ -77,14 +71,28 @@ impl Reader {
     }
 
     pub fn read_graph(graph: &mut Box<&mut impl Graph>, file: &str, lang: Lang) -> Result<usize, ParserError> {
-        let reader = Reader::lang_to_parser(&lang);
+        let nt_reader = NTripleReader{};
+        let nq_reader = NQuadsReader{};
+
         let mut buffered_reader = BufferedReader::new(file).expect("");
         let mut line_count = 1;
         while let Some(line) = buffered_reader.read_line(){
             if !line.is_empty() {
-                match reader.read_from_line(line.as_str(), line_count, graph){
-                    Ok(_) => {},
-                    Err(err) => {return Err(err)}
+
+                match &lang {
+                    Lang::NTRIPLE | Lang::NT => {
+                        match nt_reader.read_from_line(line.as_str(), line_count, graph){
+                            Ok(_) => {},
+                            Err(err) => { return Err(err) }
+                        }
+                    }
+                    Lang::NQUADS | Lang::NQ => {
+                        match nq_reader.read_from_line(line.as_str(), line_count, graph){
+                            Ok(_) => {},
+                            Err(err) => { return Err(err) }
+                        }
+                    }
+                    _ => {}
                 }
             }
             line_count += 1;
@@ -119,8 +127,8 @@ enum Token{
     ERROR
 }
 
+trait SimpleTokenizer{
 
-impl NTripleReader{
     fn peek_next_token(&self, rest_line: &str) -> Token{
 
         let pos= match rest_line.find(|c: char| !c.is_whitespace()){
@@ -189,6 +197,82 @@ impl NTripleReader{
             Node::BNode { .. } => {Token::BNode {node, pos, len}}
         }
     }
+}
+
+impl SimpleTokenizer for NTripleReader{}
+
+impl SimpleTokenizer for NQuadsReader{}
+
+impl Parser for NQuadsReader{
+    fn read_from_line(&self, line: &str, line_no: usize, graph: &mut Box<&mut impl Graph>) -> Result<bool, ParserError> {
+        if line.is_empty(){
+            return Ok(false)
+        }
+        //peek_next_token() -> expect _: or < expect < -> literal -> expect .
+        let mut current_pos =0;
+        let subject =  match self.peek_next_token(line){
+            Token::IRI{node, pos, len} => {current_pos = pos+len; node}
+            Token::BNode{node, pos, len} => {current_pos =pos+len; node}
+            Token::Literal{node, pos, len} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Literal is not allowed as subject.", line_no, current_pos+pos)))}
+            Token::DOT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] starts with dot, not allowed in NQuads syntax.", line_no,current_pos+ pos)))}
+            Token::COMMENT{pos} => {return Ok(false)}
+            _  => {return Err(ParserError::new(format!("Line [#line: {}] unexpected error.", line_no)))}
+        };
+
+        let predicate =  match self.peek_next_token(&line[current_pos..]){
+            Token::IRI{node, pos, len} => {current_pos += pos+len; node}
+            Token::BNode{node, pos, len} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] BNode not allowed as predicate. Only IRI.", line_no, current_pos+pos)))}
+            Token::Literal{node, pos, len} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Literal is not allowed as predicate. Only IRI.", line_no, current_pos+pos)))}
+            Token::DOT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Found dot, but not allowed here.", line_no, current_pos+pos)))}
+            Token::COMMENT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Comment starts within quad, which is not allowed in NQuads Syntax.", line_no, current_pos+pos)))}
+            _  => {return Err(ParserError::new(format!("Line [#line: {}] unexpected error.", line_no)))}
+
+        };
+
+        let object =  match self.peek_next_token(&line[current_pos..]){
+            Token::IRI{node, pos, len} => {current_pos += pos+len; node}
+            Token::BNode{node, pos, len} => {current_pos += pos+len; node}
+            Token::Literal{node, pos, len} => {current_pos += pos+len; node}
+            Token::DOT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Found dot, but not allowed here.", line_no, current_pos+pos)))}
+            Token::COMMENT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Comment starts within quad, which is not allowed in NQuads Syntax.", line_no, current_pos+pos)))}
+            _  => {return Err(ParserError::new(format!("Line [#line: {}] unexpected error.", line_no)))}
+        };
+
+        let graph_node =  match self.peek_next_token(&line[current_pos..]){
+            Token::IRI{node, pos, len} => {current_pos += pos+len; node}
+            Token::BNode{node, pos, len} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Graph cannot be blank node.", line_no, current_pos+pos)))}
+            Token::Literal{node, pos, len} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Graph cannot be literal.", line_no, current_pos+pos)))}
+            Token::DOT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Found dot, but not allowed here.", line_no, current_pos+pos)))}
+            Token::COMMENT{pos} => {return Err(ParserError::new(format!("Line [#line: {}, pos: {}] Comment starts within quad, which is not allowed in NQuads Syntax.", line_no, current_pos+pos)))}
+            _  => {return Err(ParserError::new(format!("Line [#line: {}] unexpected error.", line_no)))}
+        };
+
+        let subject = match subject{
+            Node::IRINode { iri } => {ResourceNode::IRINode {iri}}
+            Node::BNode { bnode } => {ResourceNode::BNode {bnode}}
+            _ => {return Err(ParserError::new(format!("WTF")));}
+
+        };
+
+        let predicate = IRIResource::create_resource(IRI::create_iri(&predicate.as_uri_resource().expect("").as_string(false)).expect(""));
+
+        match self.peek_next_token(&line[current_pos..]){
+            Token::DOT { pos } => {
+                graph.add_statement(Statement::create(
+                    subject,
+                    predicate,
+                    object
+                ));
+                Ok(true)
+            },
+            _ => {return Err(ParserError::new(format!("Line [#line: {}] doesn't end on dot.", line_no)));}
+        }
+    }
+}
+
+
+impl NTripleReader{
+
 }
 
 impl Parser for NTripleReader {
