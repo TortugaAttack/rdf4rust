@@ -16,7 +16,7 @@ pub struct BufferedReader{
 impl BufferedReader{
 
     pub fn new(file_name: &str) -> Result<BufferedReader, IOError>{
-        let mut file = match File::open(&file_name){
+        let file = match File::open(&file_name){
             Ok(file) => {file}
             Err(err) => {return Err(IOError::new(err.to_string()))}
         };
@@ -71,7 +71,7 @@ impl BufferedReader{
     pub fn read_line(&mut self) -> Option<String>{
 
         while self.buffer_lines.is_empty(){
-            self.read_lines_to_buffer();
+            self.read_lines_to_buffer().expect("");
         }
         if self.eof{
             //EOF

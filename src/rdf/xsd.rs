@@ -1,162 +1,162 @@
 use crate::util::iri::IRI;
 
 /// Base URL for XSD =  http://www.w3.org/2001/XMLSchema#
-pub fn XSD_BASE() -> String {
+pub fn xsd_base() -> String {
     String::from("http://www.w3.org/2001/XMLSchema#")
 }
 /// XSD Type String = http://www.w3.org/2001/XMLSchema#string
-pub fn XSD_STRING() -> XSDDataType {
-    XSDDataType::create_from_string((XSD_BASE() + "string")).expect("")
+pub fn xsd_string() -> XSDDataType {
+    XSDDataType::create_from_string((xsd_base() + "string")).expect("")
 }
 /// XSD Type Unsigned Byte = http://www.w3.org/2001/XMLSchema#unsignedByte
-pub fn XSD_UNSIGNED_BYTE() -> XSDDataType {
-    XSDDataType::create_from_string((XSD_BASE() +"unsignedByte")).expect("")
+pub fn xsd_unsigned_byte() -> XSDDataType {
+    XSDDataType::create_from_string((xsd_base() +"unsignedByte")).expect("")
 }
 /// XSD Type Unsigned Short = http://www.w3.org/2001/XMLSchema#unsignedShort
-pub fn XSD_UNSIGNED_SHORT() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"unsignedShort")).expect("")
+pub fn xsd_unsigned_short() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"unsignedShort")).expect("")
 }
 /// XSD Type Unsigned Int = http://www.w3.org/2001/XMLSchema#unsignedInt
-pub fn XSD_UNSIGNED_INT() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"unsignedInt")).expect("")
+pub fn xsd_unsigned_int() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"unsignedInt")).expect("")
 }
 /// XSD Type Unsigned Long = http://www.w3.org/2001/XMLSchema#unsignedLong
-pub fn XSD_UNSIGNED_LONG() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"unsignedLong")).expect("")
+pub fn xsd_unsigned_long() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"unsignedLong")).expect("")
 }
 /// XSD Type Byte = http://www.w3.org/2001/XMLSchema#byte
-pub fn XSD_BYTE() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"byte")).expect("")
+pub fn xsd_byte() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"byte")).expect("")
 }
 /// XSD Type Short = http://www.w3.org/2001/XMLSchema#short
-pub fn XSD_SHORT() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"short")).expect("")
+pub fn xsd_short() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"short")).expect("")
 }
 /// XSD Type Int = http://www.w3.org/2001/XMLSchema#int
-pub fn XSD_INT() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"int")).expect("")
+pub fn xsd_int() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"int")).expect("")
 }
 /// XSD Type Long = http://www.w3.org/2001/XMLSchema#long
-pub fn XSD_LONG() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"long")).expect("")
+pub fn xsd_long() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"long")).expect("")
 }
 /// XSD Type Integer = http://www.w3.org/2001/XMLSchema#int
 ///
 /// Will be internally used as i64 due to semantics
-pub fn XSD_INTEGER() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"integer")).expect("")
+pub fn xsd_integer() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"integer")).expect("")
 }
 /// XSD Type Non negative Integer = http://www.w3.org/2001/XMLSchema#nonNegativeInteger
 ///
 /// Will be internally used as usize
-pub fn XSD_NON_NEGATIVE_INTEGER() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"nonNegativeInteger")).expect("")
+pub fn xsd_non_negative_integer() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"nonNegativeInteger")).expect("")
 }
 /// XSD Type Non positive Integer = http://www.w3.org/2001/XMLSchema#nonPositiveInteger
 ///
 /// Will be internally used as isize
-pub fn XSD_NON_POSITIVE_INTEGER() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"nonPositiveInteger")).expect("")
+pub fn xsd_non_positive_integer() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"nonPositiveInteger")).expect("")
 }
 /// XSD Type Positive Integer = http://www.w3.org/2001/XMLSchema#positiveInteger
 ///
 /// Will be internally used as NonZeroUsize
-pub fn XSD_POSITIVE_INTEGER() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"positiveInteger")).expect("")
+pub fn xsd_positive_integer() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"positiveInteger")).expect("")
 }
 /// XSD Type Negative Integer = http://www.w3.org/2001/XMLSchema#negativeInteger
 ///
 /// Will be internally used as NonZeroIsize
-pub fn XSD_NEGATIVE_INTEGER() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"negativeInteger")).expect("")
+pub fn xsd_negative_integer() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"negativeInteger")).expect("")
 }
 /// XSD Type Decimal = http://www.w3.org/2001/XMLSchema#decimal
 ///
 /// Will be internally used as f64
-pub fn XSD_DECIMAL() -> XSDDataType{ 
-	XSDDataType::create_from_string(XSD_BASE() +"decimal").expect("")
+pub fn xsd_decimal() -> XSDDataType{
+	XSDDataType::create_from_string(xsd_base() +"decimal").expect("")
 }
 /// XSD Type Float = http://www.w3.org/2001/XMLSchema#float
 ///
 /// will be internally used as f32
-pub fn XSD_FLOAT() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"float")).expect("")
+pub fn xsd_float() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"float")).expect("")
 }
 /// XSD Type Double = http://www.w3.org/2001/XMLSchema#double
 ///
 /// will be internally used as f64
-pub fn XSD_DOUBLE() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"double")).expect("")
+pub fn xsd_double() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"double")).expect("")
 }
 /// XSD Type Boolean = http://www.w3.org/2001/XMLSchema#boolean
-pub fn XSD_BOOLEAN() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"boolean")).expect("")
+pub fn xsd_boolean() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"boolean")).expect("")
 }
 /// XSD Type Super Type = http://www.w3.org/2001/XMLSchema#anyType
 ///
 /// Will use String for this value
-pub fn XSD_ANY_TYPE() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"anyType")).expect("")
+pub fn xsd_any_type() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"anyType")).expect("")
 }
 /// XSD Type Super Type for Simple Types = http://www.w3.org/2001/XMLSchema#anySimpleType
 ///
 /// Will use String for this value
-pub fn XSD_ANY_SIMPLE_TYPE() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"anySimpleType")).expect("")
+pub fn xsd_any_simple_type() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"anySimpleType")).expect("")
 }
 /// XSD URI Type = http://www.w3.org/2001/XMLSchema#anyUri
 ///
-/// Will use rdf4rust::util::iri::URI for the value
-pub fn XSD_ANY_URI() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"anyUri")).expect("")
+/// Will use rdf4rust::util::iri::IRI for the value
+pub fn xsd_any_uri() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"anyUri")).expect("")
 }
 /// XSD Binary Type in Base64 format = http://www.w3.org/2001/XMLSchema#base64Binary
 ///
-/// Will use String for this value
-pub fn XSD_BASE64BINARY() -> XSDDataType{
-	XSDDataType::create_from_string((XSD_BASE() +"base64Binary")).expect("")
+/// Will use &[u8] for this value
+pub fn xsd_base64binary() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"base64Binary")).expect("")
 }
 /// XSD Binary Type in HEX format = http://www.w3.org/2001/XMLSchema#hexBinary
 ///
-/// Will use String for this value
-pub fn XSD_HEX_BINARY() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"hexBinary")).expect("")
+/// Will use &[u8] for this value
+pub fn xsd_hex_binary() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"hexBinary")).expect("")
 }
 /// XSD Type Duration = http://www.w3.org/2001/XMLSchema#duration
-pub fn XSD_DURATION() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"duration")).expect("")
+pub fn xsd_duration() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"duration")).expect("")
 }
 /// XSD Type Date time = http://www.w3.org/2001/XMLSchema#dateTime
-pub fn XSD_DATE_TIME() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"dateTime")).expect("")
+pub fn xsd_date_time() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"dateTime")).expect("")
 }
 /// XSD Type time = http://www.w3.org/2001/XMLSchema#time
-pub fn XSD_TIME() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"time")).expect("")
+pub fn xsd_time() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"time")).expect("")
 }
 /// XSD Type date = http://www.w3.org/2001/XMLSchema#date
-pub fn XSD_DATE() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"date")).expect("")
+pub fn xsd_date() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"date")).expect("")
 }
 /// XSD Type gYearMonth = http://www.w3.org/2001/XMLSchema#gYearMonth
-pub fn XSD_G_YEAR_MONTH() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"gYearMonth")).expect("")
+pub fn xsd_g_year_month() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"gYearMonth")).expect("")
 }
 /// XSD Type gYear = http://www.w3.org/2001/XMLSchema#gYear
-pub fn XSD_G_YEAR() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"gYear")).expect("")
+pub fn xsd_g_year() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"gYear")).expect("")
 }
-/// XSD Type gMonthDay = http://www.w3.org/2001/XMLSchema#gMonthDay
-pub fn XSD_G_MONTH_DAY() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"gMonthDay")).expect("")
+/// XSD Type gMonthDay = http://www.w3.org/2001/XMLSchema#gMonthDay --MM--DD --MM--DD(Z+-)0digit|1[0-3]:0[0..5]digit
+pub fn xsd_g_month_day() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"gMonthDay")).expect("")
 }
 /// XSD Type gDay = http://www.w3.org/2001/XMLSchema#gDay
-pub fn XSD_G_DAY() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"gDay")).expect("")
+pub fn xsd_g_day() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"gDay")).expect("")
 }
 /// XSD Type gMonth = http://www.w3.org/2001/XMLSchema#gMonth
-pub fn XSD_G_MONTH() -> XSDDataType{ 
-	XSDDataType::create_from_string((XSD_BASE() +"gMonth")).expect("")
+pub fn xsd_g_month() -> XSDDataType{
+	XSDDataType::create_from_string((xsd_base() +"gMonth")).expect("")
 }
 
 ///
@@ -193,8 +193,8 @@ impl XSDDataType{
     /// ```
     ///
     pub fn create_from_string(uri: String) -> Option<XSDDataType>{
-        if let Some(xsdUri) = IRI::create_iri(&uri).ok(){
-            Some(XSDDataType::create(xsdUri))
+        if let Some(xsd_uri) = IRI::create_iri(&uri).ok(){
+            Some(XSDDataType::create(xsd_uri))
         }else {
             None
         }
@@ -237,15 +237,15 @@ impl XSDDataType{
     /// # Example
     ///
     /// ```
-    /// use rdf4rust::rdf::xsd::{XSD_STRING, XSD_ANY_TYPE};
+    /// use rdf4rust::rdf::xsd::{xsd_string, xsd_any_type};
     ///
-    /// assert!(XSD_STRING().is_xsd_string());
+    /// assert!(xsd_string().is_xsd_string());
     ///
-    /// assert!(!XSD_ANY_TYPE().is_xsd_string())
+    /// assert!(!xsd_any_type().is_xsd_string())
     /// ```
     ///
     pub fn is_xsd_string(&self) -> bool{
-        self.dtype.as_string() == XSD_STRING().dtype.as_string()
+        self.dtype.as_string() == xsd_string().dtype.as_string()
     }
 
     ///
@@ -258,9 +258,9 @@ impl XSDDataType{
     /// # Example
     ///
     /// ```
-    /// use rdf4rust::rdf::xsd::XSD_BOOLEAN;
+    /// use rdf4rust::rdf::xsd::xsd_boolean;
     ///
-    /// let uri = XSD_BOOLEAN().get_value();
+    /// let uri = xsd_boolean().get_value();
     ///
     /// assert_eq!("http://www.w3.org/2001/XMLSchema#boolean", uri.as_string());
     /// ```

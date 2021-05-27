@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use crate::rdf::node_factory::{RDFNode, IRIResource, Literal, BlankNode};
-use std::convert::TryInto;
-use std::error::Error;
 use crate::io::reader::{parse_resolved_object, ParserError};
 use crate::util::iri::IRI;
 use crate::rdf::graph::ResourceNode::{BNode, IRINode};
-use std::hash::{Hash, Hasher};
-use std::fmt::{Display, Formatter};
+use std::hash::Hash;
+use std::fmt::Display;
 use std::fmt;
 
 ///
@@ -27,6 +25,12 @@ pub trait Graph{
     fn load(&self);
     fn store(&self);
     fn print(&self);
+}
+
+pub enum GraphType{
+    SimpleGraph,
+    IndexedGraph,
+    FullIndexedGraph
 }
 
 #[derive(PartialOrd, PartialEq, Eq, Hash)]
@@ -201,50 +205,6 @@ impl Statement{
         }
     }
 
-    pub fn from_line(line: &str) -> Result<Statement, ParserError>{
-        let mut last_whitespace = false;
-        let triple_vec: Vec<_> = line.trim().splitn(3, |c: char| {
-            if c.is_whitespace() {
-                if last_whitespace {
-                    return false
-                }
-                last_whitespace = true;
-                true
-            } else {
-                last_whitespace = false;
-                false
-            }
-        }).map(str::trim).collect();
-        if triple_vec.len() !=3 {println!("{}", line);panic!("")}
-        let subj =  triple_vec[0];
-        let pred = triple_vec[1];
-        let predicate = IRIResource::create_resource(
-            IRI::create_iri(
-                &String::from(
-                    &pred[1..pred.len()-1]
-                )
-            ).expect("")
-        );
-        let object = parse_resolved_object(triple_vec[2]).expect("Couldn't parse literal");
-        if subj.starts_with("_:"){
-            Ok(Statement{
-                subject: BNode {
-                    bnode: BlankNode::generate_from_string(&subj[2..])
-                },
-                predicate,
-                object
-            })
-        }
-        else{
-            Ok(Statement{
-                subject: IRINode {
-                    iri: IRIResource::create_resource(IRI::create_iri(&String::from(&subj[1..subj.len()-1])).expect(""))
-                },
-                predicate,
-                object
-            })
-        }
-    }
 
     pub fn get_subject(&self)-> &ResourceNode{
         &self.subject
@@ -375,7 +335,7 @@ pub struct IndexedGraph{
 }
 
 impl IndexedGraph{
-    pub fn new()-> IndexedGraph{
+    pub fn new()-> Self{
         IndexedGraph{
             statements: Vec::new(),
             spo: HashMap::new(),
